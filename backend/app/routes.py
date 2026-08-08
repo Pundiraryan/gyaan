@@ -153,7 +153,10 @@ async def explain_topic(request: ExplainRequest):
     try:
         raw_output = await llm_provider.generate(prompt, metadata={"depth": request.depth})
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
+        raw_output = (
+            f"LLM request failed: {exc}. "
+            "Please try again later or configure an LLM provider."
+        )
 
     try:
         parsed = json.loads(raw_output)

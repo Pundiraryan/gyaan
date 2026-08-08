@@ -13,6 +13,8 @@ class LearnAnythingTab extends ConsumerStatefulWidget {
 class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
   final _queryController = TextEditingController();
   String _selectedDepth = 'student';
+  String _lastRequestedQuery = '';
+  String _lastRequestedDepth = 'student';
   bool _submitted = false;
   bool _isSubmitting = false;
   double _progress = 0.0;
@@ -25,12 +27,18 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
     super.dispose();
   }
 
-  void _startProgress() {
+  void _startProgress({String? query, String? depth}) {
     _progressTimer?.cancel();
     setState(() {
       _submitted = true;
       _isSubmitting = true;
       _progress = 0.12;
+      if (query != null) {
+        _lastRequestedQuery = query;
+      }
+      if (depth != null) {
+        _lastRequestedDepth = depth;
+      }
     });
     _progressTimer = Timer.periodic(const Duration(milliseconds: 450), (timer) {
       if (!mounted) {
@@ -92,7 +100,8 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
                 onPressed: () {
                   final query = _queryController.text.trim();
                   if (query.isEmpty) return;
-                  _startProgress();
+                  _startProgress(query: query, depth: _selectedDepth);
+                  ref.read(learnExplanationProvider({'query': query, 'depth': _selectedDepth}));
                 },
                 child: const Text('Explain'),
               ),
@@ -105,13 +114,17 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
                 builder: (context, ref, _) {
                   final explanationAsync = ref.watch(
                     learnExplanationProvider({
-                      'query': _queryController.text.trim(),
-                      'depth': _selectedDepth,
+                      'query': _lastRequestedQuery.isNotEmpty ? _lastRequestedQuery : _queryController.text.trim(),
+                      'depth': _lastRequestedDepth.isNotEmpty ? _lastRequestedDepth : _selectedDepth,
                     }),
                   );
                   return explanationAsync.when(
                     data: (explanation) {
-                      _stopProgress();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          _stopProgress();
+                        }
+                      });
                       return SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +160,11 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
                       ],
                     ),
                     error: (error, stack) {
-                      _stopProgress();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          _stopProgress();
+                        }
+                      });
                       return Center(child: Text('Unable to explain topic: $error'));
                     },
                   );
