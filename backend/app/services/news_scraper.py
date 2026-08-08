@@ -11,7 +11,7 @@ from ..crud import upsert_articles
 
 FEED_URLS = [
     # Engineering blogs
-    "https://engineering.linkedin.com/rss",
+    "https://news.google.com/rss/search?q=LinkedIn+Engineering+when:1d&hl=en-IN&gl=IN&ceid=IN:en",
     "https://feeds.feedburner.com/TechCrunch/",
     "https://www.wired.com/feed/rss",
     "https://www.theverge.com/rss/index.xml",
@@ -115,8 +115,17 @@ class NewsScraper:
         self.feed_urls = list(feed_urls) if feed_urls else FEED_URLS
 
     async def fetch_feed(self, feed_url: str) -> List[Dict[str, Any]]:
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(feed_url)
+        async with httpx.AsyncClient(
+            timeout=20,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; GyaanBot/1.0; educational news RSS scraper)"},
+        ) as client:
+            response = None
+            for attempt in range(3):
+                response = await client.get(feed_url)
+                if response.status_code != 429:
+                    break
+                await asyncio.sleep(5 * (attempt + 1))
             response.raise_for_status()
             feed = await asyncio.to_thread(feedparser.parse, response.text)
 
