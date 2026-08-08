@@ -24,10 +24,6 @@ class LLMProvider:
     def model(self) -> str:
         return os.getenv("LLM_MODEL", "gpt-4o-mini")
 
-    @property
-    def max_tokens(self) -> int:
-        return int(os.getenv("LLM_MAX_TOKENS", "1024"))
-
     def select_model(self, depth: str) -> str:
         if self.provider == "openrouter":
             mapping = {
@@ -98,10 +94,9 @@ class LLMProvider:
                     },
                     {"role": "user", "content": prompt},
                 ],
-                "max_tokens": self.max_tokens,
                 "temperature": 0.7,
             }
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=180) as client:
                 response = await client.post(url, json=body, headers=headers)
                 response.raise_for_status()
                 data = response.json()
