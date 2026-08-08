@@ -5,16 +5,28 @@ import httpx
 
 class LLMProvider:
     def __init__(self):
-        self.provider = os.getenv("LLM_PROVIDER", "openai")
-        self.api_key = (
+        self.ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+        self.openrouter_base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+
+    @property
+    def provider(self) -> str:
+        return os.getenv("LLM_PROVIDER", "openai")
+
+    @property
+    def api_key(self) -> Optional[str]:
+        return (
             os.getenv("LLM_API_KEY")
             or os.getenv("OPENROUTER_API_KEY")
             or os.getenv("OPENAI_API_KEY")
         )
-        self.model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-        self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", "1024"))
-        self.ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-        self.openrouter_base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+
+    @property
+    def model(self) -> str:
+        return os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+    @property
+    def max_tokens(self) -> int:
+        return int(os.getenv("LLM_MAX_TOKENS", "1024"))
 
     def select_model(self, depth: str) -> str:
         if self.provider == "openrouter":

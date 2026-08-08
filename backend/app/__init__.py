@@ -1,5 +1,9 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,8 +13,6 @@ from .models import Base
 from .crud import ensure_seed_data
 from .services.news_scraper import scrape_latest_articles
 from .services.scheduler import process_daily_digest, start_daily_scrape_scheduler
-
-load_dotenv()
 
 app = FastAPI(title="GYAAN API", version="0.1.0")
 
