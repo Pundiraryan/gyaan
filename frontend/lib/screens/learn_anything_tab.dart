@@ -13,8 +13,7 @@ class LearnAnythingTab extends ConsumerStatefulWidget {
 class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
   final _queryController = TextEditingController();
   String _selectedDepth = 'student';
-  String _lastRequestedQuery = '';
-  String _lastRequestedDepth = 'student';
+  Map<String, String> _activeRequestParams = {};
   bool _submitted = false;
   bool _isSubmitting = false;
   double _progress = 0.0;
@@ -27,18 +26,13 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
     super.dispose();
   }
 
-  void _startProgress({String? query, String? depth}) {
+  void _startProgress({required Map<String, String> params}) {
     _progressTimer?.cancel();
     setState(() {
       _submitted = true;
       _isSubmitting = true;
       _progress = 0.12;
-      if (query != null) {
-        _lastRequestedQuery = query;
-      }
-      if (depth != null) {
-        _lastRequestedDepth = depth;
-      }
+      _activeRequestParams = params;
     });
     _progressTimer = Timer.periodic(const Duration(milliseconds: 450), (timer) {
       if (!mounted) {
@@ -100,8 +94,9 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
                 onPressed: () {
                   final query = _queryController.text.trim();
                   if (query.isEmpty) return;
-                  _startProgress(query: query, depth: _selectedDepth);
-                  ref.read(learnExplanationProvider({'query': query, 'depth': _selectedDepth}));
+                  final params = {'query': query, 'depth': _selectedDepth};
+                  _startProgress(params: params);
+                  ref.read(learnExplanationProvider(params));
                 },
                 child: const Text('Explain'),
               ),
@@ -113,10 +108,12 @@ class _LearnAnythingTabState extends ConsumerState<LearnAnythingTab> {
               child: Consumer(
                 builder: (context, ref, _) {
                   final explanationAsync = ref.watch(
-                    learnExplanationProvider({
-                      'query': _lastRequestedQuery.isNotEmpty ? _lastRequestedQuery : _queryController.text.trim(),
-                      'depth': _lastRequestedDepth.isNotEmpty ? _lastRequestedDepth : _selectedDepth,
-                    }),
+                    learnExplanationProvider(_activeRequestParams.isEmpty
+                        ? {
+                            'query': _queryController.text.trim(),
+                            'depth': _selectedDepth,
+                          }
+                        : _activeRequestParams),
                   );
                   return explanationAsync.when(
                     data: (explanation) {
